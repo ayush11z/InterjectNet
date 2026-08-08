@@ -3,6 +3,10 @@
 # I/O API (AudioMetaData) that pyannote.audio 3.x still imports at load time.
 torch==2.5.1
 torchaudio==2.5.1
+# huggingface_hub>=1.0 dropped hf_hub_download(use_auth_token=...), which
+# pyannote.audio 3.x still calls internally; transformers needs hub>=1.5
+# anyway, so we patch pyannote at runtime instead (see src/utils/hf_compat.py).
+huggingface_hub>=1.5
 pyannote.audio>=3.1
 faster-whisper>=1.0
 librosa>=0.10
