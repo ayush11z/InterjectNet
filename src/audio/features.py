@@ -15,6 +15,7 @@ class AcousticFeatures:
     pitch_mean_hz: float | None  # None if no voiced frames were found
     pitch_slope: float | None  # Hz/sec trend over the segment; negative = falling pitch
     energy_rms: float
+    energy_slope: float | None  # amplitude/sec trend; negative = trailing off in loudness
 
 
 def extract_features(y: np.ndarray, sr: int, start: float, end: float) -> AcousticFeatures:
@@ -22,15 +23,25 @@ def extract_features(y: np.ndarray, sr: int, start: float, end: float) -> Acoust
     clip = y[int(start * sr) : int(end * sr)]
 
     if len(clip) < sr * 0.05:  # too short (<50ms) to say anything meaningful
-        return AcousticFeatures(pitch_mean_hz=None, pitch_slope=None, energy_rms=0.0)
+        return AcousticFeatures(pitch_mean_hz=None, pitch_slope=None, energy_rms=0.0, energy_slope=None)
 
     energy_rms = float(np.sqrt(np.mean(clip.astype(np.float64) ** 2)))
+
+    # Frame-wise RMS trend -- a falling envelope reads as trailing off/finishing;
+    # a flat or rising one reads as still going strong.
+    rms_frames = librosa.feature.rms(y=clip)[0]
+    energy_slope = None
+    if len(rms_frames) >= 2:
+        rms_times = librosa.frames_to_time(np.arange(len(rms_frames)), sr=sr)
+        energy_slope = float(np.polyfit(rms_times, rms_frames, 1)[0])
 
     f0, voiced_flag, _voiced_prob = librosa.pyin(clip, fmin=_FMIN, fmax=_FMAX, sr=sr)
     voiced_f0 = f0[voiced_flag] if f0 is not None else np.array([])
 
     if len(voiced_f0) < 2:
-        return AcousticFeatures(pitch_mean_hz=None, pitch_slope=None, energy_rms=energy_rms)
+        return AcousticFeatures(
+            pitch_mean_hz=None, pitch_slope=None, energy_rms=energy_rms, energy_slope=energy_slope
+        )
 
     pitch_mean_hz = float(np.mean(voiced_f0))
     # Slope of a linear fit over the voiced frames, in Hz/sec -- a rough proxy
@@ -39,4 +50,6 @@ def extract_features(y: np.ndarray, sr: int, start: float, end: float) -> Acoust
     voiced_times = np.flatnonzero(voiced_flag) * (len(clip) / sr) / len(voiced_flag)
     pitch_slope = float(np.polyfit(voiced_times, voiced_f0, 1)[0])
 
-    return AcousticFeatures(pitch_mean_hz=pitch_mean_hz, pitch_slope=pitch_slope, energy_rms=energy_rms)
+    return AcousticFeatures(
+        pitch_mean_hz=pitch_mean_hz, pitch_slope=pitch_slope, energy_rms=energy_rms, energy_slope=energy_slope
+    )

@@ -25,6 +25,7 @@ class ProcessedSegment:
     pitch_mean_hz: float | None
     pitch_slope: float | None
     energy_rms: float
+    energy_slope: float | None
     speaking_rate_wps: float  # words per second
 
 
@@ -63,6 +64,7 @@ def _to_segment(u: Utterance, y, sr: int) -> ProcessedSegment:
         pitch_mean_hz=round(feats.pitch_mean_hz, 1) if feats.pitch_mean_hz else None,
         pitch_slope=round(feats.pitch_slope, 1) if feats.pitch_slope else None,
         energy_rms=round(feats.energy_rms, 4),
+        energy_slope=round(feats.energy_slope, 5) if feats.energy_slope else None,
         speaking_rate_wps=round(speaking_rate, 2),
     )
 
