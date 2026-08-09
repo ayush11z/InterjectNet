@@ -22,6 +22,11 @@ streamlit>=1.35
 matplotlib>=3.8
 pandas>=2.0
 
+# Evaluation (weight fitting, public-benchmark eval)
+scikit-learn>=1.4
+scipy>=1.11
+datasets>=2.19
+
 # Utility
 python-dotenv>=1.0
 pyyaml>=6.0
